@@ -26,28 +26,43 @@ const urlDatabase = {
 
 app.use(express.urlencoded({ extended: true }));
 
+// Create a new short URL and redirect to that page after creation
 app.post("/urls", (req, res) => {
-  let newID = generateRandomString(6);
+  // Generate a random string 6 characters long, if the string exists generate another!
+  let newID = generateRandomString(6); 
   while(urlDatabase[newID]){
     newID = generateRandomString(6);
   }
+  //Update database to include new key pair and redirect to a page showing this new key value pair.
   urlDatabase[newID] = req.body.longURL;
   res.redirect(`/urls/${newID}`);
 });
 
-app.get("/", (req, res) => {
-  res.send("Hello!");
+// Travel to longURL based off of key value pair
+app.get("/u/:id", (req, res) => {
+  
+  const longURL = `${urlDatabase[req.params.id]}`
+  res.redirect(longURL);
 });
 
+// Home page for tinyurl APP
+app.get("/", (req, res) => {
+  const templateVars = { urls: urlDatabase };
+  res.render("urls_index", templateVars);
+});
+
+// Second url for tinyurl APP homepage
 app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase };
   res.render("urls_index", templateVars);
 });
 
+// Navigation for a page containing a form to create a new tinyurl
 app.get("/urls/new", (req, res) => {
   res.render("urls_new");
 });
 
+// Navigation to a page to show a url based off of its key value pair in urlDatabase
 app.get("/urls/:id", (req, res) => {
   const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id] };
   res.render("urls_show", templateVars);
