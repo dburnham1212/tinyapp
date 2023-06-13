@@ -44,11 +44,18 @@ app.post("/urls/:id/delete", (req, res) => {
   res.redirect("/urls");
 });
 
-// Use post method to delete the item from the database, and redirect to the homepage
+// Use post method update an item from the database, and redirect to the appropriate page
 app.post("/urls/:id/update", (req, res) => {
   urlDatabase[req.params.id] = req.body.longURL;
   res.redirect(`/urls/${req.params.id}`);
 });
+
+// Use post method to allow user to login with a specific username
+app.post("/login", (req, res) => {
+  res.cookie('username', req.body.username);
+  res.redirect(`/urls`);
+});
+
 
 // Travel to longURL based off of key value pair
 app.get("/u/:id", (req, res) => {
