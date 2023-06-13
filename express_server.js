@@ -38,6 +38,18 @@ app.post("/urls", (req, res) => {
   res.redirect(`/urls/${newID}`);
 });
 
+// Use post method to delete the item from the database, and redirect to the homepage
+app.post("/urls/:id/delete", (req, res) => {
+  delete urlDatabase[req.params.id] ;
+  res.redirect("/urls");
+});
+
+// Use post method to delete the item from the database, and redirect to the homepage
+app.post("/urls/:id/update", (req, res) => {
+  urlDatabase[req.params.id] = req.body.longURL;
+  res.redirect(`/urls/${req.params.id}`);
+});
+
 // Travel to longURL based off of key value pair
 app.get("/u/:id", (req, res) => {
   const longURL = `${urlDatabase[req.params.id]}`
@@ -67,11 +79,6 @@ app.get("/urls/:id", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
-// Use post method to delete the item from the database, and redirect to the homepage
-app.post("/urls/:id/delete", (req, res) => {
-  delete urlDatabase[req.params.id] ;
-  res.redirect("/urls");
-});
 
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
