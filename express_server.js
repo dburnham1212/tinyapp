@@ -59,7 +59,7 @@ app.post("/login", (req, res) => {
   res.redirect(`/urls`);
 });
 
-// Use post method to allow user to login with a specific username
+// Use post method to allow user to logout and will clear cookies from data
 app.post("/logout", (req, res) => {
   res.clearCookie('username');
   res.redirect(`/urls`);
