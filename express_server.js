@@ -40,7 +40,6 @@ app.post("/urls", (req, res) => {
 
 // Travel to longURL based off of key value pair
 app.get("/u/:id", (req, res) => {
-  
   const longURL = `${urlDatabase[req.params.id]}`
   res.redirect(longURL);
 });
@@ -66,6 +65,12 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls/:id", (req, res) => {
   const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id] };
   res.render("urls_show", templateVars);
+});
+
+// Use post method to delete the item from the database, and redirect to the homepage
+app.post("/urls/:id/delete", (req, res) => {
+  delete urlDatabase[req.params.id] ;
+  res.redirect("/urls");
 });
 
 app.get("/urls.json", (req, res) => {
