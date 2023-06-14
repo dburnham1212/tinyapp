@@ -27,14 +27,28 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+const users = {
+  userRandomID: {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur",
+  },
+  user2RandomID: {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk",
+  },
+};
+
 app.use(express.urlencoded({ extended: true }));
 
 // Create a new short URL and redirect to that page after creation
 app.post("/urls", (req, res) => {
   // Generate a random string 6 characters long, if the string exists generate another!
-  let newID = generateRandomString(6); 
+  let newIdLength = 6;
+  let newID = generateRandomString(newIdLength); 
   while(urlDatabase[newID]){
-    newID = generateRandomString(6);
+    newID = generateRandomString(newIdLength);
   }
   //Update database to include new key pair and redirect to a page showing this new key value pair.
   urlDatabase[newID] = req.body.longURL;
@@ -62,6 +76,21 @@ app.post("/login", (req, res) => {
 // Use post method to allow user to logout and will clear cookies from data
 app.post("/logout", (req, res) => {
   res.clearCookie('username');
+  res.redirect(`/urls`);
+});
+
+app.post("/register", (req, res) => {
+  let newIdLength = 6;
+  let newId = generateRandomString(newIdLength);
+  while(users[newId]) {
+    newId = generateRandomString(newIdLength);
+  }
+  users[newId] = {};
+  users[newId].id = newId;
+  users[newId].email = req.body.email;
+  users[newId].password = req.body.password;
+  res.cookie('user_id', newId);
+  console.log(users[newId]);
   res.redirect(`/urls`);
 });
 
