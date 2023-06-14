@@ -67,8 +67,13 @@ app.post("/logout", (req, res) => {
 
 // Travel to longURL based off of key value pair
 app.get("/u/:id", (req, res) => {
-  const longURL = `${urlDatabase[req.params.id]}`
-  res.redirect(longURL);
+  // If we try to navigate to a page with an invalid id, send and error
+  if(!urlDatabase[req.params.id] ){
+    res.status(404).send("404 error: PAGE NOT FOUND");
+  } else { //otherwise navigate to correct page
+    const longURL = `${urlDatabase[req.params.id]}`
+    res.redirect(longURL);
+  }
 });
 
 // Home page for tinyurl APP
