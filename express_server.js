@@ -3,24 +3,11 @@ const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
 
-// function to genereate a random string based off of the length parameter
-function generateRandomString(length) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890'//usable characters
-  let count = 0;
-  let randomString = '';
-  // loop throught the available characters and append each to randomString
-  while(count < length){
-    let charPosition = Math.round(Math.random() * (chars.length - 1));
-    randomString = `${randomString}${chars.charAt(charPosition)}`
-    count ++;
-  }
-  return randomString;
-}
-
 // Set ejs as the view engine
 app.set("view engine", "ejs");
 //use the cookie parser
 app.use(cookieParser())
+app.use(express.urlencoded({ extended: true }));
 
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
@@ -40,7 +27,28 @@ const users = {
   },
 };
 
-app.use(express.urlencoded({ extended: true }));
+// function to genereate a random string based off of the length parameter
+function generateRandomString(length) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890'//usable characters
+  let count = 0;
+  let randomString = '';
+  // loop throught the available characters and append each to randomString
+  while(count < length){
+    let charPosition = Math.round(Math.random() * (chars.length - 1));
+    randomString = `${randomString}${chars.charAt(charPosition)}`
+    count ++;
+  }
+  return randomString;
+}
+
+function getUserByEmail(email) {
+  for(const user_id in users){//Check if the email already exists
+    if(users[user_id].email === email){
+      return users[user_id];
+    } 
+  }
+  return undefined;
+}
 
 // Create a new short URL and redirect to that page after creation
 app.post("/urls", (req, res) => {
@@ -85,10 +93,22 @@ app.post("/register", (req, res) => {
   while(users[newId]) {
     newId = generateRandomString(newIdLength);
   }
+  if(!req.body.email){ //Check if the field was empty
+    res.status(400).send("400 error: NO EMAIL INPUT");
+  } else {//Check if the email already exists
+    if (!getUserByEmail()) {
+      res.status(400).send("400 error: EMAIL ALREADY FOUND IN DATABASE");
+    }
+  } 
+  if(!req.body.password){//Check if the password field was empty
+    res.status(400).send("400 error: NO PASSWORD INPUT");
+  }
+  //Setup the new user object
   users[newId] = {};
   users[newId].id = newId;
   users[newId].email = req.body.email;
   users[newId].password = req.body.password;
+  //Create the cookie based on the user object and redirect to appropriate page
   res.cookie('user_id', newId);
   console.log(users[newId]);
   res.redirect(`/urls`);
