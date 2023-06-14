@@ -123,8 +123,9 @@ app.post("/login", (req, res) => {
   if(!req.body.password){//Check if the password field was empty
     res.status(403).send("403 error: NO PASSWORD INPUT");
   }
+  //Get the user account based off of the email
   const user = getUserByEmail(req.body.email);
-  if(user.password !== req.body.password) {
+  if(user.password !== req.body.password) {//Check if the password matches what we have in our records
     res.status(403).send("403 error: INVALID CREDENTIALS");
   }
   //Create the cookie based on the user object and redirect to appropriate page
