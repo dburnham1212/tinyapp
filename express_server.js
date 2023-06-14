@@ -75,12 +75,6 @@ app.post("/urls/:id/update", (req, res) => {
   res.redirect(`/urls/${req.params.id}`);
 });
 
-// Use post method to allow user to login with a specific username
-app.post("/login", (req, res) => {
-  res.cookie('username', req.body.username);
-  res.redirect(`/urls`);
-});
-
 // Use post method to allow user to logout and will clear cookies from data
 app.post("/logout", (req, res) => {
   res.clearCookie('username');
@@ -96,7 +90,7 @@ app.post("/register", (req, res) => {
   if(!req.body.email){ //Check if the field was empty
     res.status(400).send("400 error: NO EMAIL INPUT");
   } else {//Check if the email already exists
-    if (!getUserByEmail()) {
+    if (getUserByEmail(req.body.email)) {
       res.status(400).send("400 error: EMAIL ALREADY FOUND IN DATABASE");
     }
   } 
@@ -110,7 +104,26 @@ app.post("/register", (req, res) => {
   users[newId].password = req.body.password;
   //Create the cookie based on the user object and redirect to appropriate page
   res.cookie('user_id', newId);
-  console.log(users[newId]);
+  res.redirect(`/urls`);
+});
+
+app.post("/login", (req, res) => {
+  if(!req.body.email){ //Check if the field was empty
+    res.status(400).send("400 error: NO EMAIL INPUT");
+  } else {//Check if the email doesnt exists
+    if (!getUserByEmail(req.body.email)) {
+      res.status(400).send("400 error: EMAIL NOT FOUND");
+    }
+  } 
+  if(!req.body.password){//Check if the password field was empty
+    res.status(400).send("400 error: NO PASSWORD INPUT");
+  }
+  const user = getUserByEmail(req.body.email);
+  if(user.password !== req.body.password) {
+    res.status(400).send("400 error: INVALID CREDENTIALS");
+  }
+  //Create the cookie based on the user object and redirect to appropriate page
+  res.cookie('user_id', user.id);
   res.redirect(`/urls`);
 });
 
@@ -157,6 +170,12 @@ app.get("/register", (req, res) =>{
   const userId = req.cookies["user_id"];
   const templateVars = { urls: urlDatabase, user: users[userId] };
   res.render("urls_registration", templateVars);
+});
+
+app.get("/login", (req, res) =>{
+  const userId = req.cookies["user_id"];
+  const templateVars = { urls: urlDatabase, user: users[userId] };
+  res.render("urls_login", templateVars);
 });
 
 // navigate to a page to show the json version of the url database
