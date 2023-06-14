@@ -57,27 +57,39 @@ function getUserByEmail(email) {
 // POST METHODS
 // Create a new short URL and redirect to that page after creation
 app.post("/urls", (req, res) => {
-  // Generate a random string 6 characters long, if the string exists generate another!
-  let newIdLength = 6;
-  let newID = generateRandomString(newIdLength); 
-  while(urlDatabase[newID]){
-    newID = generateRandomString(newIdLength);
+  if (!req.cookies["user_id"]) { // If the user is not logged in redirect to login page
+    res.redirect("/login");
+  } else {
+    // Generate a random string 6 characters long, if the string exists generate another!
+    let newIdLength = 6;
+    let newID = generateRandomString(newIdLength); 
+    while(urlDatabase[newID]){
+      newID = generateRandomString(newIdLength);
+    }
+    //Update database to include new key pair and redirect to a page showing this new key value pair.
+    urlDatabase[newID] = req.body.longURL;
+    res.redirect(`/urls/${newID}`);
   }
-  //Update database to include new key pair and redirect to a page showing this new key value pair.
-  urlDatabase[newID] = req.body.longURL;
-  res.redirect(`/urls/${newID}`);
 });
 
 // Use post method to delete the item from the database, and redirect to the homepage
 app.post("/urls/:id/delete", (req, res) => {
-  delete urlDatabase[req.params.id] ;
-  res.redirect("/urls");
+  if (!req.cookies["user_id"]) { // If the user is not logged in redirect to login page
+    res.redirect("/login");
+  } else {
+    delete urlDatabase[req.params.id] ;
+    res.redirect("/urls");
+  }
 });
 
 // Use post method update an item from the database, and redirect to the appropriate page
 app.post("/urls/:id/update", (req, res) => {
-  urlDatabase[req.params.id] = req.body.longURL;
-  res.redirect(`/urls/${req.params.id}`);
+  if (!req.cookies["user_id"]) { // If the user is not logged in redirect to login page
+    res.redirect("/login");
+  } else {
+    urlDatabase[req.params.id] = req.body.longURL;
+    res.redirect(`/urls/${req.params.id}`);
+  }
 });
 
 // Use post method to allow user to logout and will clear cookies from data
@@ -87,50 +99,58 @@ app.post("/logout", (req, res) => {
 });
 
 app.post("/register", (req, res) => {
-  let newIdLength = 6;
-  let newId = generateRandomString(newIdLength);
-  while(users[newId]) {
-    newId = generateRandomString(newIdLength);
-  }
-  if(!req.body.email){ //Check if the field was empty
-    res.status(400).send("400 error: NO EMAIL INPUT");
-  } else {//Check if the email already exists
-    if (getUserByEmail(req.body.email)) {
-      res.status(400).send("400 error: EMAIL ALREADY FOUND IN DATABASE");
+  if (req.cookies["user_id"]) { // If the user is logged in redirect to urls page
+    res.redirect("/urls");
+  } else {
+    let newIdLength = 6;
+    let newId = generateRandomString(newIdLength);
+    while(users[newId]) {
+      newId = generateRandomString(newIdLength);
     }
-  } 
-  if(!req.body.password){//Check if the password field was empty
-    res.status(400).send("400 error: NO PASSWORD INPUT");
+    if(!req.body.email){ //Check if the field was empty
+      res.status(400).send("400 error: NO EMAIL INPUT");
+    } else {//Check if the email already exists
+      if (getUserByEmail(req.body.email)) {
+        res.status(400).send("400 error: EMAIL ALREADY FOUND IN DATABASE");
+      }
+    } 
+    if(!req.body.password){//Check if the password field was empty
+      res.status(400).send("400 error: NO PASSWORD INPUT");
+    }
+    //Setup the new user object
+    users[newId] = {};
+    users[newId].id = newId;
+    users[newId].email = req.body.email;
+    users[newId].password = req.body.password;
+    //Create the cookie based on the user object and redirect to appropriate page
+    res.cookie('user_id', newId);
+    res.redirect(`/urls`);
   }
-  //Setup the new user object
-  users[newId] = {};
-  users[newId].id = newId;
-  users[newId].email = req.body.email;
-  users[newId].password = req.body.password;
-  //Create the cookie based on the user object and redirect to appropriate page
-  res.cookie('user_id', newId);
-  res.redirect(`/urls`);
 });
 
 app.post("/login", (req, res) => {
-  if(!req.body.email){ //Check if the field was empty
-    res.status(403).send("403 error: NO EMAIL INPUT");
-  } else {//Check if the email doesnt exists
-    if (!getUserByEmail(req.body.email)) {
-      res.status(403).send("403 error: EMAIL NOT FOUND");
+  if (req.cookies["user_id"]) { // If the user is logged in redirect to urls page
+    res.redirect("/urls");
+  } else {
+    if(!req.body.email){ //Check if the field was empty
+      res.status(403).send("403 error: NO EMAIL INPUT");
+    } else {//Check if the email doesnt exists
+      if (!getUserByEmail(req.body.email)) {
+        res.status(403).send("403 error: EMAIL NOT FOUND");
+      }
+    } 
+    if(!req.body.password){//Check if the password field was empty
+      res.status(403).send("403 error: NO PASSWORD INPUT");
     }
+    //Get the user account based off of the email
+    const user = getUserByEmail(req.body.email);
+    if(user.password !== req.body.password) {//Check if the password matches what we have in our records
+      res.status(403).send("403 error: INVALID CREDENTIALS");
+    }
+    //Create the cookie based on the user object and redirect to appropriate page
+    res.cookie('user_id', user.id);
+    res.redirect(`/urls`);
   } 
-  if(!req.body.password){//Check if the password field was empty
-    res.status(403).send("403 error: NO PASSWORD INPUT");
-  }
-  //Get the user account based off of the email
-  const user = getUserByEmail(req.body.email);
-  if(user.password !== req.body.password) {//Check if the password matches what we have in our records
-    res.status(403).send("403 error: INVALID CREDENTIALS");
-  }
-  //Create the cookie based on the user object and redirect to appropriate page
-  res.cookie('user_id', user.id);
-  res.redirect(`/urls`);
 });
 
 
@@ -148,42 +168,68 @@ app.get("/u/:id", (req, res) => {
 
 // Home page for tinyurl APP
 app.get("/", (req, res) => {
-  const userId = req.cookies["user_id"];
-  const templateVars = { urls: urlDatabase, user: users[userId] };
-  res.render("urls_index", templateVars);
+  if (!req.cookies["user_id"]) { // If the user is not logged in redirect to login
+    res.redirect("/login");
+  } else {
+    const userId = req.cookies["user_id"];
+    const templateVars = { urls: urlDatabase, user: users[userId] };
+    res.render("urls_index", templateVars);
+  }
 });
 
 // Second url for tinyurl APP homepage
-app.get("/urls", (req, res) => {
-  const userId = req.cookies["user_id"];
-  const templateVars = { urls: urlDatabase, user: users[userId] };
-  res.render("urls_index", templateVars);
+app.get("/urls", (req, res) => { // If the user is not logged in redirect to login
+  if (!req.cookies["user_id"]) {
+    res.redirect("/login");
+  } else {
+    const userId = req.cookies["user_id"];
+    const templateVars = { urls: urlDatabase, user: users[userId] };
+    res.render("urls_index", templateVars);
+  }
 });
 
 // Navigation for a page containing a form to create a new tinyurl
 app.get("/urls/new", (req, res) => {
-  const userId = req.cookies["user_id"];
-  const templateVars = { user: users[userId] };
-  res.render("urls_new", templateVars);
+  if (!req.cookies["user_id"]) { // If the user is not logged in redirect to login
+    res.redirect("/login");
+  } else {
+    const userId = req.cookies["user_id"];
+    const templateVars = { user: users[userId] };
+    res.render("urls_new", templateVars);
+  }
 });
 
 // Navigation to a page to show a url based off of its key value pair in urlDatabase
 app.get("/urls/:id", (req, res) => {
-  const userId = req.cookies["user_id"];
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], user: users[userId] };
-  res.render("urls_show", templateVars);
+  if (!req.cookies["user_id"]) { // If the user is not logged in redirect to login
+    res.redirect("/login");
+  } else {
+    const userId = req.cookies["user_id"];
+    const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], user: users[userId] };
+    res.render("urls_show", templateVars);
+  }
 });
 
+// Navigation to a page where users can register an account
 app.get("/register", (req, res) =>{
-  const userId = req.cookies["user_id"];
-  const templateVars = { urls: urlDatabase, user: users[userId] };
-  res.render("urls_registration", templateVars);
+  if (req.cookies["user_id"]) { // If the user is logged in redirect to urls page
+    res.redirect("/urls");
+  } else {
+    const userId = req.cookies["user_id"];
+    const templateVars = { urls: urlDatabase, user: users[userId] };
+    res.render("urls_registration", templateVars);
+  }
 });
 
+// Navigation to a page where users can login to an account
 app.get("/login", (req, res) =>{
-  const userId = req.cookies["user_id"];
-  const templateVars = { urls: urlDatabase, user: users[userId] };
-  res.render("urls_login", templateVars);
+  if(req.cookies["user_id"]){ // If the user is logged in redirect to urls page
+    res.redirect("/urls");
+  } else {
+    const userId = req.cookies["user_id"];
+    const templateVars = { urls: urlDatabase, user: users[userId] };
+    res.render("urls_login", templateVars);
+  }
 });
 
 // navigate to a page to show the json version of the url database
