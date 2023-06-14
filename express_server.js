@@ -107,30 +107,35 @@ app.get("/u/:id", (req, res) => {
 
 // Home page for tinyurl APP
 app.get("/", (req, res) => {
-  const templateVars = { urls: urlDatabase, username: req.cookies["username"]};
+  const userId = req.cookies["user_id"];
+  const templateVars = { urls: urlDatabase, user: users[userId] };
   res.render("urls_index", templateVars);
 });
 
 // Second url for tinyurl APP homepage
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase, username: req.cookies["username"]};
+  const userId = req.cookies["user_id"];
+  const templateVars = { urls: urlDatabase, user: users[userId] };
   res.render("urls_index", templateVars);
 });
 
 // Navigation for a page containing a form to create a new tinyurl
 app.get("/urls/new", (req, res) => {
-  const templateVars = { username: req.cookies["username"]};
+  const userId = req.cookies["user_id"];
+  const templateVars = { user: users[userId] };
   res.render("urls_new", templateVars);
 });
 
 // Navigation to a page to show a url based off of its key value pair in urlDatabase
 app.get("/urls/:id", (req, res) => {
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], username: req.cookies['username']};
+  const userId = req.cookies["user_id"];
+  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], user: users[userId] };
   res.render("urls_show", templateVars);
 });
 
 app.get("/register", (req, res) =>{
-  const templateVars = { username: req.cookies["username"]};
+  const userId = req.cookies["user_id"];
+  const templateVars = { urls: urlDatabase, user: users[userId] };
   res.render("urls_registration", templateVars);
 });
 
