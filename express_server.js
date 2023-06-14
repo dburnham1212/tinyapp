@@ -9,9 +9,22 @@ app.set("view engine", "ejs");
 app.use(cookieParser())
 app.use(express.urlencoded({ extended: true }));
 
+
+//DATABASE VALUES
+// const urlDatabase = {
+//   "b2xVn2": "http://www.lighthouselabs.ca",
+//   "9sm5xK": "http://www.google.com"
+// };
+
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b6UTxQ: {
+    longURL: "https://www.tsn.ca",
+    userID: "userRandomID",
+  },
+  i3BoGr: {
+    longURL: "https://www.google.ca",
+    userID: "user2RandomID",
+  },
 };
 
 const users = {
@@ -53,12 +66,22 @@ function getUserByEmail(email) {
   return undefined;
 }
 
-
+// Cycle through users and put urls that correspond with a specific user id into an object
+function urlsForUser(urlDatabase, userID){
+  let userDatabase = {};
+  for(let urlID in urlDatabase) {
+    if(urlDatabase[urlID].userID === userID){
+      userDatabase[urlID] = urlDatabase[urlID];
+    }
+  }
+  return userDatabase;
+}
 // POST METHODS
 // Create a new short URL and redirect to that page after creation
 app.post("/urls", (req, res) => {
-  if (!req.cookies["user_id"]) { // If the user is not logged in redirect to login page
-    res.redirect("/login");
+  const userID = req.cookies["user_id"];
+  if (!userID) { // If the user is not logged in redirect to login page
+    res.status(403).send("403 error: NO USER LOGGED IN");
   } else {
     // Generate a random string 6 characters long, if the string exists generate another!
     let newIdLength = 6;
@@ -67,27 +90,39 @@ app.post("/urls", (req, res) => {
       newID = generateRandomString(newIdLength);
     }
     //Update database to include new key pair and redirect to a page showing this new key value pair.
-    urlDatabase[newID] = req.body.longURL;
+    urlDatabase[newID] = { userID: userID, longURL: req.body.longURL }
     res.redirect(`/urls/${newID}`);
   }
 });
 
 // Use post method to delete the item from the database, and redirect to the homepage
 app.post("/urls/:id/delete", (req, res) => {
-  if (!req.cookies["user_id"]) { // If the user is not logged in redirect to login page
-    res.redirect("/login");
+  const userID = req.cookies["user_id"];
+  const urlID = req.params.id;
+  if (!userID) { // If the user is not logged in redirect to login page
+    res.status(403).send("403 error: NO USER LOGGED IN");
+  } else if (!urlDatabase[urlID]) {
+    res.status(403).send(`403 error: URL AT ${urlID} DOES NOT EXIST`);
+  } else if (urlDatabase[urlID].userID !== userID) {
+    res.status(403).send(`403 error: YOU DO NOT HAVE ACCES TO ${urlID}`);
   } else {
-    delete urlDatabase[req.params.id] ;
+    delete urlDatabase[urlID] ;
     res.redirect("/urls");
   }
 });
 
 // Use post method update an item from the database, and redirect to the appropriate page
-app.post("/urls/:id/update", (req, res) => {
-  if (!req.cookies["user_id"]) { // If the user is not logged in redirect to login page
-    res.redirect("/login");
+app.post("/urls/:id", (req, res) => {
+  const userID = req.cookies["user_id"];
+  const urlID = req.params.id;
+  if (!userID) { // If the user is not logged in redirect to login page
+    res.status(403).send("403 error: NO USER LOGGED IN");
+  } else if (!urlDatabase[urlID]) {
+    res.status(403).send(`403 error: URL AT ${urlID} DOES NOT EXIST`);
+  } else if (urlDatabase[urlID].userID !== userID) {
+    res.status(403).send(`403 error: YOU DO NOT HAVE ACCES TO ${urlID}`);
   } else {
-    urlDatabase[req.params.id] = req.body.longURL;
+    urlDatabase[req.params.id].longURL = req.body.longURL;
     res.redirect(`/urls/${req.params.id}`);
   }
 });
@@ -118,10 +153,7 @@ app.post("/register", (req, res) => {
       res.status(400).send("400 error: NO PASSWORD INPUT");
     }
     //Setup the new user object
-    users[newId] = {};
-    users[newId].id = newId;
-    users[newId].email = req.body.email;
-    users[newId].password = req.body.password;
+    users[newId] = { id: newId, email: req.body.email, password: req.body.password };
     //Create the cookie based on the user object and redirect to appropriate page
     res.cookie('user_id', newId);
     res.redirect(`/urls`);
@@ -159,7 +191,7 @@ app.post("/login", (req, res) => {
 app.get("/u/:id", (req, res) => {
   // If we try to navigate to a page with an invalid id, send and error
   if(!urlDatabase[req.params.id] ){
-    res.status(404).send("404 error: PAGE NOT FOUND");
+    res.status(404).send("404 error: ID NOT IN DATABASE");
   } else { //otherwise navigate to correct page
     const longURL = `${urlDatabase[req.params.id]}`
     res.redirect(longURL);
@@ -171,8 +203,9 @@ app.get("/", (req, res) => {
   if (!req.cookies["user_id"]) { // If the user is not logged in redirect to login
     res.redirect("/login");
   } else {
-    const userId = req.cookies["user_id"];
-    const templateVars = { urls: urlDatabase, user: users[userId] };
+    const userID = req.cookies["user_id"];
+    let userDatabase = urlsForUser(urlDatabase, userID);
+    const templateVars = { urls: userDatabase, user: users[userID] };
     res.render("urls_index", templateVars);
   }
 });
@@ -182,8 +215,9 @@ app.get("/urls", (req, res) => { // If the user is not logged in redirect to log
   if (!req.cookies["user_id"]) {
     res.redirect("/login");
   } else {
-    const userId = req.cookies["user_id"];
-    const templateVars = { urls: urlDatabase, user: users[userId] };
+    const userID = req.cookies["user_id"];
+    let userDatabase = urlsForUser(urlDatabase, userID);
+    const templateVars = { urls: userDatabase, user: users[userID] };
     res.render("urls_index", templateVars);
   }
 });
@@ -201,42 +235,39 @@ app.get("/urls/new", (req, res) => {
 
 // Navigation to a page to show a url based off of its key value pair in urlDatabase
 app.get("/urls/:id", (req, res) => {
-  if (!req.cookies["user_id"]) { // If the user is not logged in redirect to login
-    res.redirect("/login");
+  const userID = req.cookies["user_id"];
+  if (!userID) { // If the user is not logged in redirect to login
+    res.status(403).send("403 error: PERMISSION DENIED, YOU ARE NOT LOGGED IN");
+  } else if (urlDatabase[req.params.id].userID !== userID ){ // If the user is logged in but their userID does not correspond with URLS userID
+    res.status(403).send("403 error: PERMISSION DENIED, YOU DO NOT HAVE ACCESS TO THIS PAGE");
   } else {
-    const userId = req.cookies["user_id"];
-    const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], user: users[userId] };
+    const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id].longURL, user: users[userID] };
     res.render("urls_show", templateVars);
   }
 });
 
 // Navigation to a page where users can register an account
 app.get("/register", (req, res) =>{
-  if (req.cookies["user_id"]) { // If the user is logged in redirect to urls page
+  const userID = req.cookies["user_id"];
+  if (userID) { // If the user is logged in redirect to urls page
     res.redirect("/urls");
   } else {
-    const userId = req.cookies["user_id"];
-    const templateVars = { urls: urlDatabase, user: users[userId] };
+    
+    const templateVars = { user: users[userID] };
     res.render("urls_registration", templateVars);
   }
 });
 
 // Navigation to a page where users can login to an account
 app.get("/login", (req, res) =>{
-  if(req.cookies["user_id"]){ // If the user is logged in redirect to urls page
+  const userID = req.cookies["user_id"];
+  if(userID){ // If the user is logged in redirect to urls page
     res.redirect("/urls");
   } else {
-    const userId = req.cookies["user_id"];
-    const templateVars = { urls: urlDatabase, user: users[userId] };
+    const templateVars = { user: users[userID] };
     res.render("urls_login", templateVars);
   }
 });
-
-// navigate to a page to show the json version of the url database
-app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
-});
-
 
 app.listen(PORT, () => {
   console.log(`Tinyapp listening on port ${PORT}!`);

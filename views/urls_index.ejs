@@ -14,7 +14,7 @@
       integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS"
       crossorigin="anonymous"
     />
-    <title>TinyApp</title>
+    <title>TinyApp - Home</title>
   </head>
   <body>
     <%- include('partials/_header') %>
@@ -33,7 +33,7 @@
           <% for (let id in urls) { %>
             <tr>
               <td><%= id %></td>
-              <td><%= urls[id] %></td>
+              <td><%= urls[id].longURL %></td>
               <!-- Edit Button -->
               <td>
                 <form method="GET" action="/urls/<%= id %>">
@@ -50,7 +50,6 @@
           <% } %>
         </tbody>
       </table>
-      <a href="#">Shorten New URL</a>
     </main>
     <!-- Bootstrap JS -->
     <script
