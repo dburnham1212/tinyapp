@@ -114,18 +114,18 @@ app.post("/register", (req, res) => {
 
 app.post("/login", (req, res) => {
   if(!req.body.email){ //Check if the field was empty
-    res.status(400).send("400 error: NO EMAIL INPUT");
+    res.status(403).send("403 error: NO EMAIL INPUT");
   } else {//Check if the email doesnt exists
     if (!getUserByEmail(req.body.email)) {
-      res.status(400).send("400 error: EMAIL NOT FOUND");
+      res.status(403).send("403 error: EMAIL NOT FOUND");
     }
   } 
   if(!req.body.password){//Check if the password field was empty
-    res.status(400).send("400 error: NO PASSWORD INPUT");
+    res.status(403).send("403 error: NO PASSWORD INPUT");
   }
   const user = getUserByEmail(req.body.email);
   if(user.password !== req.body.password) {
-    res.status(400).send("400 error: INVALID CREDENTIALS");
+    res.status(403).send("403 error: INVALID CREDENTIALS");
   }
   //Create the cookie based on the user object and redirect to appropriate page
   res.cookie('user_id', user.id);
