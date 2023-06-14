@@ -27,6 +27,8 @@ const users = {
   },
 };
 
+
+// HELPER FUNCTIONS
 // function to genereate a random string based off of the length parameter
 function generateRandomString(length) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890'//usable characters
@@ -41,8 +43,9 @@ function generateRandomString(length) {
   return randomString;
 }
 
+// Cycle through users and check if an email is equal to the params, if so return it
 function getUserByEmail(email) {
-  for(const user_id in users){//Check if the email already exists
+  for(const user_id in users){
     if(users[user_id].email === email){
       return users[user_id];
     } 
@@ -50,6 +53,8 @@ function getUserByEmail(email) {
   return undefined;
 }
 
+
+// POST METHODS
 // Create a new short URL and redirect to that page after creation
 app.post("/urls", (req, res) => {
   // Generate a random string 6 characters long, if the string exists generate another!
@@ -77,8 +82,8 @@ app.post("/urls/:id/update", (req, res) => {
 
 // Use post method to allow user to logout and will clear cookies from data
 app.post("/logout", (req, res) => {
-  res.clearCookie('username');
-  res.redirect(`/urls`);
+  res.clearCookie('user_id');
+  res.redirect(`/login`);
 });
 
 app.post("/register", (req, res) => {
@@ -127,6 +132,8 @@ app.post("/login", (req, res) => {
   res.redirect(`/urls`);
 });
 
+
+// GET METHODS
 // Travel to longURL based off of key value pair
 app.get("/u/:id", (req, res) => {
   // If we try to navigate to a page with an invalid id, send and error
