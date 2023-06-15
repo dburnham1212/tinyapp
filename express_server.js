@@ -20,10 +20,12 @@ const urlDatabase = {
   b6UTxQ: {
     longURL: "https://www.tsn.ca",
     userID: "userRandomID",
+    visited: 0
   },
   i3BoGr: {
     longURL: "https://www.google.ca",
     userID: "user2RandomID",
+    visited: 0
   },
 };
 
@@ -58,9 +60,9 @@ function generateRandomString(length) {
 
 // Cycle through users and check if an email is equal to the params, if so return it
 function getUserByEmail(email) {
-  for(const user_id in users){
-    if(users[user_id].email === email){
-      return users[user_id];
+  for(const userID in users){
+    if(users[userID].email === email){
+      return users[userID];
     } 
   }
   return undefined;
@@ -90,7 +92,7 @@ app.post("/urls", (req, res) => {
       newID = generateRandomString(newIdLength);
     }
     //Update database to include new key pair and redirect to a page showing this new key value pair.
-    urlDatabase[newID] = { userID: userID, longURL: req.body.longURL }
+    urlDatabase[newID] = { userID: userID, longURL: req.body.longURL, visited: 0 }
     res.redirect(`/urls/${newID}`);
   }
 });
@@ -99,9 +101,9 @@ app.post("/urls", (req, res) => {
 app.post("/urls/:id/delete", (req, res) => {
   const userID = req.cookies["user_id"];
   const urlID = req.params.id;
-  /*if (!userID) { // If the user is not logged in redirect to login page
+  if (!userID) { // If the user is not logged in redirect to login page
     res.status(403).send("403 error: NO USER LOGGED IN\n");
-  } else */if (!urlDatabase[urlID]) {
+  } else if (!urlDatabase[urlID]) {
     res.status(403).send(`403 error: URL AT ${urlID} DOES NOT EXIST\n`);
   } else if (urlDatabase[urlID].userID !== userID) {
     res.status(403).send(`403 error: YOU DO NOT HAVE ACCES TO ${urlID}\n`);
@@ -122,8 +124,8 @@ app.post("/urls/:id", (req, res) => {
   } else if (urlDatabase[urlID].userID !== userID) {
     res.status(403).send(`403 error: YOU DO NOT HAVE ACCES TO ${urlID}\n`);
   } else {
-    urlDatabase[req.params.id].longURL = req.body.longURL;
-    res.redirect(`/urls/${req.params.id}`);
+    urlDatabase[urlID].longURL = req.body.longURL;
+    res.redirect(`/urls/${urlID}`);
   }
 });
 
@@ -137,6 +139,7 @@ app.post("/register", (req, res) => {
   if (req.cookies["user_id"]) { // If the user is logged in redirect to urls page
     res.redirect("/urls");
   } else {
+    // Generate a random string 6 characters long, if the string exists generate another!
     let newIdLength = 6;
     let newID = generateRandomString(newIdLength);
     while(users[newID]) {
@@ -189,11 +192,13 @@ app.post("/login", (req, res) => {
 // GET METHODS
 // Travel to longURL based off of key value pair
 app.get("/u/:id", (req, res) => {
+  const urlID = req.params.id;
   // If we try to navigate to a page with an invalid id, send and error
   if(!urlDatabase[req.params.id] ){
     res.status(404).send("404 error: ID NOT IN DATABASE");
-  } else { //otherwise navigate to correct page
-    const longURL = `${urlDatabase[req.params.id].longURL}`
+  } else { //otherwise navigate to correct page and update visited count
+    const longURL = `${urlDatabase[urlID].longURL}`
+    urlDatabase[urlID].visited++;
     res.redirect(longURL);
   }
 });
@@ -236,12 +241,13 @@ app.get("/urls/new", (req, res) => {
 // Navigation to a page to show a url based off of its key value pair in urlDatabase
 app.get("/urls/:id", (req, res) => {
   const userID = req.cookies["user_id"];
+  const urlID = req.params.id;
   if (!userID) { // If the user is not logged in redirect to login
     res.status(403).send("403 error: PERMISSION DENIED, YOU ARE NOT LOGGED IN");
   } else if (urlDatabase[req.params.id].userID !== userID ){ // If the user is logged in but their userID does not correspond with URLS userID
     res.status(403).send("403 error: PERMISSION DENIED, YOU DO NOT HAVE ACCESS TO THIS PAGE");
   } else {
-    const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id].longURL, user: users[userID] };
+    const templateVars = { id: urlID, url: urlDatabase[urlID], user: users[userID] };
     res.render("urls_show", templateVars);
   }
 });
