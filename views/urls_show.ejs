@@ -12,7 +12,9 @@
   </head>
 
   <body>
+    <!--Include the header-->
     <%- include('partials/_header') %>
+    <!--Display the created URL-->
     <div class="card text-center">
       <div class="card-header"></div>
       <div class="card-body">
@@ -23,6 +25,7 @@
         </p><h5 class="card-title">Visited: <%= url.visited %> Times</h5>
       </div>
     </div>
+    <!--Display a form to allow user to update URL-->
     <div class="card text-center">
       <div class="card-body">
         <h5 class="card-title">Edit</h5>

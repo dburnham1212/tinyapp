@@ -1,14 +1,16 @@
 //REQUIRES
-const express = require("express"); 
-var cookieSession = require('cookie-session'); // require cookie session
+const express = require("express");
+const cookieSession = require('cookie-session'); // require cookie session
 const bcrypt = require("bcryptjs");
 
 const {generateRandomString, getUserByEmail, urlsForUser} = require("./helpers");
+
 
 // CONSTANTS
 const app = express();
 const PORT = 8080; // default port 8080
 app.set("view engine", "ejs");
+
 
 // MIDDLEWARE
 app.use(express.urlencoded({ extended: true }));
@@ -18,9 +20,11 @@ app.use(cookieSession({
 
   // Cookie Options
   maxAge: 24 * 60 * 60 * 1000 // 24 hours
-}))
+}));
+
 
 // DATABASE OBJECTS
+// URL Database
 const urlDatabase = {
   b6UTxQ: {
     longURL: "https://www.tsn.ca",
@@ -34,6 +38,7 @@ const urlDatabase = {
   },
 };
 
+// Users database
 const users = {
   userRandomID: {
     id: "userRandomID",
@@ -48,48 +53,47 @@ const users = {
 };
 
 
-
 // POST METHODS
 // Create a new short URL and redirect to that page after creation
 app.post("/urls", (req, res) => {
-  const userID = req.session.user_id;
+  const userID = req.session.userID;
   if (!userID) { // If the user is not logged in redirect to login page
-    res.status(403).send("403 error: NO USER LOGGED IN");
+    res.status(403).send('403 error: NO USER LOGGED IN\n');
   } else {
     // Generate a random string 6 characters long, if the string exists generate another!
     let newIdLength = 6;
-    let newID = generateRandomString(newIdLength); 
-    while(urlDatabase[newID]){
+    let newID = generateRandomString(newIdLength);
+    while (urlDatabase[newID]) {
       newID = generateRandomString(newIdLength);
     }
     //Update database to include new key pair and redirect to a page showing this new key value pair.
-    urlDatabase[newID] = { userID: userID, longURL: req.body.longURL, visited: 0 }
+    urlDatabase[newID] = { userID: userID, longURL: req.body.longURL, visited: 0 };
     res.redirect(`/urls/${newID}`);
   }
 });
 
 // Use post method to delete the item from the database, and redirect to the homepage
 app.post("/urls/:id/delete", (req, res) => {
-  const userID = req.session.user_id;
+  const userID = req.session.userID;
   const urlID = req.params.id;
   if (!userID) { // If the user is not logged in send an error to let them know
-    res.status(403).send("403 error: NO USER LOGGED IN\n");
+    res.status(403).send('403 error: NO USER LOGGED IN\n');
   } else if (!urlDatabase[urlID]) { // If the user is logged in but the url does not exist let them know
     res.status(404).send(`404 error: URL AT ${urlID} DOES NOT EXIST\n`);
   } else if (urlDatabase[urlID].userID !== userID) { // If the user is logged in but the url does not belong to them let them know
     res.status(403).send(`403 error: YOU DO NOT HAVE ACCES TO ${urlID}\n`);
   } else { // Otherwise delete the url and navigate back to the view all urls
-    delete urlDatabase[urlID] ;
+    delete urlDatabase[urlID];
     res.redirect("/urls");
   }
 });
 
 // Use post method update an item from the database, and redirect to the appropriate page
 app.post("/urls/:id", (req, res) => {
-  const userID = req.session.user_id;
+  const userID = req.session.userID;
   const urlID = req.params.id;
   if (!userID) { // If the user is not logged in send an error to let them know
-    res.status(403).send("403 error: NO USER LOGGED IN\n");
+    res.status(403).send('403 error: NO USER LOGGED IN\n');
   } else if (!urlDatabase[urlID]) { // If the user is logged in but the url does not exist let them know
     res.status(404).send(`404 error: URL AT ${urlID} DOES NOT EXIST\n`);
   } else if (urlDatabase[urlID].userID !== userID) { // If the user is logged in but the url does not belong to them let them know
@@ -101,74 +105,75 @@ app.post("/urls/:id", (req, res) => {
 });
 
 app.post("/register", (req, res) => {
-  if (req.session.user_id) { // If the user is logged in redirect to urls page
+  if (req.session.userID) { // If the user is logged in redirect to urls page
     res.redirect("/urls");
   } else {
     // Generate a random string 6 characters long, if the string exists generate another!
     let newIdLength = 6;
     let newID = generateRandomString(newIdLength);
-    while(users[newID]) {
+    while (users[newID]) {
       newID = generateRandomString(newIdLength);
     }
-    if(!req.body.email){ //Check if the field was empty
-      res.status(400).send("400 error: NO EMAIL INPUT");
+    if (!req.body.email) { //Check if the field was empty
+      res.status(400).send('400 error: NO EMAIL INPUT\n');
     } else {//Check if the email already exists
       if (getUserByEmail(req.body.email, users)) {
-        res.status(400).send("400 error: EMAIL ALREADY FOUND IN DATABASE");
+        res.status(400).send('400 error: EMAIL ALREADY FOUND IN DATABASE\n');
       }
-    } 
-    if(!req.body.password){//Check if the password field was empty
-      res.status(400).send("400 error: NO PASSWORD INPUT");
     }
+    if (!req.body.password) {//Check if the password field was empty
+      res.status(400).send('400 error: NO PASSWORD INPUT\n');
+    }
+    //Create new hashed password
     const hashedPassword = bcrypt.hashSync(req.body.password, 10);
     //Setup the new user object
     users[newID] = { id: newID, email: req.body.email, password: hashedPassword };
     //Create the cookie based on the user object and redirect to appropriate page
-    req.session.user_id = newID;
+    req.session.userID = newID;
     res.redirect(`/urls`);
   }
 });
 
 app.post("/login", (req, res) => {
-  if (req.session.user_id) { // If the user is logged in redirect to urls page
+  if (req.session.userID) { // If the user is logged in redirect to urls page
     res.redirect("/urls");
   } else {
-    if(!req.body.email){ //Check if the field was empty
-      res.status(403).send("403 error: NO EMAIL INPUT");
+    if (!req.body.email) { //Check if the field was empty
+      res.status(403).send('403 error: NO EMAIL INPUT\n');
     } else {//Check if the email doesnt exists
       if (!getUserByEmail(req.body.email, users)) {
-        res.status(403).send("403 error: EMAIL NOT FOUND");
+        res.status(403).send('403 error: EMAIL NOT FOUND\n');
       }
-    } 
-    if(!req.body.password){//Check if the password field was empty
-      res.status(403).send("403 error: NO PASSWORD INPUT");
+    }
+    if (!req.body.password) {//Check if the password field was empty
+      res.status(403).send('403 error: NO PASSWORD INPUT\n');
     }
     //Get the user account based off of the email
     const user = getUserByEmail(req.body.email, users);
-    if(!bcrypt.compareSync(req.body.password, user.password)) {//Check if the password matches with the hash that we have stored for the user
-      res.status(403).send("403 error: INVALID CREDENTIALS");
+    if (!bcrypt.compareSync(req.body.password, user.password)) {//Check if the password matches with the hash that we have stored for the user
+      res.status(403).send('403 error: INVALID CREDENTIALS\n');
     }
     //Create the cookie based on the user object and redirect to appropriate page
-    req.session.user_id = user.id;
+    req.session.userID = user.id;
     res.redirect(`/urls`);
-  } 
+  }
 });
 
 // Use post method to allow user to logout and will clear cookies from data
 app.post("/logout", (req, res) => {
-  req.session = null
+  req.session = null;
   res.redirect(`/login`);
 });
+
 
 // GET METHODS
 // Travel to longURL based off of key value pair
 app.get("/u/:id", (req, res) => {
   const urlID = req.params.id;
-  // If we try to navigate to a page with an invalid id, send and error
-  if(!urlDatabase[req.params.id] ){
-    res.status(404).send("404 error: ID NOT IN DATABASE");
+  if (!urlDatabase[req.params.id]) { // If we try to navigate to a page with an invalid id, send and error
+    res.status(404).send('404 error: ID NOT IN DATABASE\n');
   } else { //otherwise navigate to correct page and update visited count
-    const longURL = `${urlDatabase[urlID].longURL}`
+    const longURL = `${urlDatabase[urlID].longURL}`;
     urlDatabase[urlID].visited++;
     res.redirect(longURL);
   }
@@ -176,10 +181,10 @@ app.get("/u/:id", (req, res) => {
 
 // Home page for tinyurl APP
 app.get("/", (req, res) => {
-  if (req.session.user_id) { // If the user is not logged in redirect to login
+  if (req.session.userID) { // If the user is not logged in redirect to login
     res.redirect("/login");
   } else {
-    const userID = req.session.user_id;
+    const userID = req.session.userID;
     let userDatabase = urlsForUser(urlDatabase, userID);
     const templateVars = { urls: userDatabase, user: users[userID] };
     res.render("urls_index", templateVars);
@@ -188,7 +193,7 @@ app.get("/", (req, res) => {
 
 // Second url for tinyurl APP homepage
 app.get("/urls", (req, res) => { // If the user is not logged in redirect to login
-  const userID = req.session.user_id;
+  const userID = req.session.userID;
   if (!userID) {
     res.redirect("/login");
   } else {
@@ -200,7 +205,7 @@ app.get("/urls", (req, res) => { // If the user is not logged in redirect to log
 
 // Navigation for a page containing a form to create a new tinyurl
 app.get("/urls/new", (req, res) => {
-  const userID = req.session.user_id;
+  const userID = req.session.userID;
   if (!userID) { // If the user is not logged in redirect to login
     res.redirect("/login");
   } else {
@@ -211,12 +216,12 @@ app.get("/urls/new", (req, res) => {
 
 // Navigation to a page to show a url based off of its key value pair in urlDatabase
 app.get("/urls/:id", (req, res) => {
-  const userID = req.session.user_id;
+  const userID = req.session.userID;
   const urlID = req.params.id;
-  if (!userID) { // If the user is not send appropriate error message
-    res.status(403).send("403 error: PERMISSION DENIED, YOU ARE NOT LOGGED IN");
-  } else if (urlDatabase[req.params.id].userID !== userID ){ // If the user is logged in but their userID does not correspond with URLS userID
-    res.status(403).send("403 error: PERMISSION DENIED, YOU DO NOT HAVE ACCESS TO THIS PAGE");
+  if (!userID) { // If the user is not logged in send appropriate error message
+    res.status(403).send('403 error: PERMISSION DENIED, YOU ARE NOT LOGGED IN');
+  } else if (urlDatabase[req.params.id].userID !== userID) { // If the user is logged in but their userID does not correspond with URLS userID
+    res.status(403).send('403 error: PERMISSION DENIED, YOU DO NOT HAVE ACCESS TO THIS PAGE');
   } else {
     const templateVars = { id: urlID, url: urlDatabase[urlID], user: users[userID] };
     res.render("urls_show", templateVars);
@@ -225,7 +230,7 @@ app.get("/urls/:id", (req, res) => {
 
 // Navigation to a page where users can register an account
 app.get("/register", (req, res) =>{
-  const userID = req.session.user_id;
+  const userID = req.session.userID;
   if (userID) { // If the user is logged in redirect to urls page
     res.redirect("/urls");
   } else {
@@ -236,8 +241,8 @@ app.get("/register", (req, res) =>{
 
 // Navigation to a page where users can login to an account
 app.get("/login", (req, res) =>{
-  const userID = req.session.user_id;
-  if(userID){ // If the user is logged in redirect to urls page
+  const userID = req.session.userID;
+  if (userID) { // If the user is logged in redirect to urls page
     res.redirect("/urls");
   } else {
     const templateVars = { user: users[userID] };

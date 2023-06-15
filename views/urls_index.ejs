@@ -17,6 +17,7 @@
     <title>TinyApp - Home</title>
   </head>
   <body>
+    <!--Include the header-->
     <%- include('partials/_header') %>
     <main style="margin: 1em;">
       <h3>My URLs</h3>
@@ -30,6 +31,7 @@
           </tr>
         </thead>
         <tbody>
+          <!-- Cycle through urls and display them-->
           <% for (let id in urls) { %>
             <tr>
               <td><%= id %></td>
