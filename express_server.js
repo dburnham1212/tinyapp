@@ -1,22 +1,24 @@
-const express = require("express");
-const cookieParser = require('cookie-parser'); //require the cookie parser
+//REQUIRES
+const express = require("express"); 
+var cookieSession = require('cookie-session'); // require cookie session
 const bcrypt = require("bcryptjs");
+
+// CONSTANTS
 const app = express();
 const PORT = 8080; // default port 8080
-
-// Set ejs as the view engine
 app.set("view engine", "ejs");
-//use the cookie parser
-app.use(cookieParser())
+
+// MIDDLEWARE
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieSession({
+  name: 'session',
+  keys: ['Key1', 'Key2', 'Key3'],
 
+  // Cookie Options
+  maxAge: 24 * 60 * 60 * 1000 // 24 hours
+}))
 
-//DATABASE VALUES
-// const urlDatabase = {
-//   "b2xVn2": "http://www.lighthouselabs.ca",
-//   "9sm5xK": "http://www.google.com"
-// };
-
+// DATABASE OBJECTS
 const urlDatabase = {
   b6UTxQ: {
     longURL: "https://www.tsn.ca",
@@ -82,7 +84,7 @@ function urlsForUser(urlDatabase, userID){
 // POST METHODS
 // Create a new short URL and redirect to that page after creation
 app.post("/urls", (req, res) => {
-  const userID = req.cookies["user_id"];
+  const userID = req.session.user_id;
   if (!userID) { // If the user is not logged in redirect to login page
     res.status(403).send("403 error: NO USER LOGGED IN");
   } else {
@@ -100,7 +102,7 @@ app.post("/urls", (req, res) => {
 
 // Use post method to delete the item from the database, and redirect to the homepage
 app.post("/urls/:id/delete", (req, res) => {
-  const userID = req.cookies["user_id"];
+  const userID = req.session.user_id;
   const urlID = req.params.id;
   if (!userID) { // If the user is not logged in send an error to let them know
     res.status(403).send("403 error: NO USER LOGGED IN\n");
@@ -116,7 +118,7 @@ app.post("/urls/:id/delete", (req, res) => {
 
 // Use post method update an item from the database, and redirect to the appropriate page
 app.post("/urls/:id", (req, res) => {
-  const userID = req.cookies["user_id"];
+  const userID = req.session.user_id;
   const urlID = req.params.id;
   if (!userID) { // If the user is not logged in send an error to let them know
     res.status(403).send("403 error: NO USER LOGGED IN\n");
@@ -131,7 +133,7 @@ app.post("/urls/:id", (req, res) => {
 });
 
 app.post("/register", (req, res) => {
-  if (req.cookies["user_id"]) { // If the user is logged in redirect to urls page
+  if (req.session.user_id) { // If the user is logged in redirect to urls page
     res.redirect("/urls");
   } else {
     // Generate a random string 6 characters long, if the string exists generate another!
@@ -154,13 +156,13 @@ app.post("/register", (req, res) => {
     //Setup the new user object
     users[newID] = { id: newID, email: req.body.email, password: hashedPassword };
     //Create the cookie based on the user object and redirect to appropriate page
-    res.cookie('user_id', newID);
+    req.session.user_id = newID;
     res.redirect(`/urls`);
   }
 });
 
 app.post("/login", (req, res) => {
-  if (req.cookies["user_id"]) { // If the user is logged in redirect to urls page
+  if (req.session.user_id) { // If the user is logged in redirect to urls page
     res.redirect("/urls");
   } else {
     if(!req.body.email){ //Check if the field was empty
@@ -179,14 +181,14 @@ app.post("/login", (req, res) => {
       res.status(403).send("403 error: INVALID CREDENTIALS");
     }
     //Create the cookie based on the user object and redirect to appropriate page
-    res.cookie('user_id', user.id);
+    req.session.user_id = user.id;
     res.redirect(`/urls`);
   } 
 });
 
 // Use post method to allow user to logout and will clear cookies from data
 app.post("/logout", (req, res) => {
-  res.clearCookie('user_id');
+  req.session = null
   res.redirect(`/login`);
 });
 
@@ -206,10 +208,10 @@ app.get("/u/:id", (req, res) => {
 
 // Home page for tinyurl APP
 app.get("/", (req, res) => {
-  if (!req.cookies["user_id"]) { // If the user is not logged in redirect to login
+  if (req.session.user_id) { // If the user is not logged in redirect to login
     res.redirect("/login");
   } else {
-    const userID = req.cookies["user_id"];
+    const userID = req.session.user_id;
     let userDatabase = urlsForUser(urlDatabase, userID);
     const templateVars = { urls: userDatabase, user: users[userID] };
     res.render("urls_index", templateVars);
@@ -218,10 +220,10 @@ app.get("/", (req, res) => {
 
 // Second url for tinyurl APP homepage
 app.get("/urls", (req, res) => { // If the user is not logged in redirect to login
-  if (!req.cookies["user_id"]) {
+  const userID = req.session.user_id;
+  if (!userID) {
     res.redirect("/login");
   } else {
-    const userID = req.cookies["user_id"];
     let userDatabase = urlsForUser(urlDatabase, userID);
     const templateVars = { urls: userDatabase, user: users[userID] };
     res.render("urls_index", templateVars);
@@ -230,20 +232,20 @@ app.get("/urls", (req, res) => { // If the user is not logged in redirect to log
 
 // Navigation for a page containing a form to create a new tinyurl
 app.get("/urls/new", (req, res) => {
-  if (!req.cookies["user_id"]) { // If the user is not logged in redirect to login
+  const userID = req.session.user_id;
+  if (!userID) { // If the user is not logged in redirect to login
     res.redirect("/login");
   } else {
-    const userId = req.cookies["user_id"];
-    const templateVars = { user: users[userId] };
+    const templateVars = { user: users[userID] };
     res.render("urls_new", templateVars);
   }
 });
 
 // Navigation to a page to show a url based off of its key value pair in urlDatabase
 app.get("/urls/:id", (req, res) => {
-  const userID = req.cookies["user_id"];
+  const userID = req.session.user_id;
   const urlID = req.params.id;
-  if (!userID) { // If the user is not logged in redirect to login
+  if (!userID) { // If the user is not send appropriate error message
     res.status(403).send("403 error: PERMISSION DENIED, YOU ARE NOT LOGGED IN");
   } else if (urlDatabase[req.params.id].userID !== userID ){ // If the user is logged in but their userID does not correspond with URLS userID
     res.status(403).send("403 error: PERMISSION DENIED, YOU DO NOT HAVE ACCESS TO THIS PAGE");
@@ -255,7 +257,7 @@ app.get("/urls/:id", (req, res) => {
 
 // Navigation to a page where users can register an account
 app.get("/register", (req, res) =>{
-  const userID = req.cookies["user_id"];
+  const userID = req.session.user_id;
   if (userID) { // If the user is logged in redirect to urls page
     res.redirect("/urls");
   } else {
@@ -266,7 +268,7 @@ app.get("/register", (req, res) =>{
 
 // Navigation to a page where users can login to an account
 app.get("/login", (req, res) =>{
-  const userID = req.cookies["user_id"];
+  const userID = req.session.user_id;
   if(userID){ // If the user is logged in redirect to urls page
     res.redirect("/urls");
   } else {
