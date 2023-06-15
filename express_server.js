@@ -59,7 +59,7 @@ function generateRandomString(length) {
 }
 
 // Cycle through users and check if an email is equal to the params, if so return it
-function getUserByEmail(email) {
+function getUserByEmail(users, email) {
   for(const userID in users){
     if(users[userID].email === email){
       return users[userID];
@@ -148,7 +148,7 @@ app.post("/register", (req, res) => {
     if(!req.body.email){ //Check if the field was empty
       res.status(400).send("400 error: NO EMAIL INPUT");
     } else {//Check if the email already exists
-      if (getUserByEmail(req.body.email)) {
+      if (getUserByEmail(users, req.body.email)) {
         res.status(400).send("400 error: EMAIL ALREADY FOUND IN DATABASE");
       }
     } 
@@ -170,7 +170,7 @@ app.post("/login", (req, res) => {
     if(!req.body.email){ //Check if the field was empty
       res.status(403).send("403 error: NO EMAIL INPUT");
     } else {//Check if the email doesnt exists
-      if (!getUserByEmail(req.body.email)) {
+      if (!getUserByEmail(users, req.body.email)) {
         res.status(403).send("403 error: EMAIL NOT FOUND");
       }
     } 
@@ -178,7 +178,7 @@ app.post("/login", (req, res) => {
       res.status(403).send("403 error: NO PASSWORD INPUT");
     }
     //Get the user account based off of the email
-    const user = getUserByEmail(req.body.email);
+    const user = getUserByEmail(users, req.body.email);
     if(user.password !== req.body.password) {//Check if the password matches what we have in our records
       res.status(403).send("403 error: INVALID CREDENTIALS");
     }
