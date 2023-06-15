@@ -116,46 +116,40 @@ app.post("/register", (req, res) => {
     }
     if (!req.body.email) { //Check if the field was empty
       res.status(400).send('400 error: NO EMAIL INPUT\n');
-    } else {//Check if the email already exists
-      if (getUserByEmail(req.body.email, users)) {
-        res.status(400).send('400 error: EMAIL ALREADY FOUND IN DATABASE\n');
-      }
-    }
-    if (!req.body.password) {//Check if the password field was empty
+    } else if (getUserByEmail(req.body.email, users)) {//Check if the email already exists
+      res.status(400).send('400 error: EMAIL ALREADY FOUND IN DATABASE\n');
+    } else if (!req.body.password) {//Check if the password field was empty
       res.status(400).send('400 error: NO PASSWORD INPUT\n');
+    } else {
+      //Create new hashed password
+      const hashedPassword = bcrypt.hashSync(req.body.password, 10);
+      //Setup the new user object
+      users[newID] = { id: newID, email: req.body.email, password: hashedPassword };
+      //Create the cookie based on the user object and redirect to appropriate page
+      req.session.userID = newID;
+      res.redirect(`/urls`);
     }
-    //Create new hashed password
-    const hashedPassword = bcrypt.hashSync(req.body.password, 10);
-    //Setup the new user object
-    users[newID] = { id: newID, email: req.body.email, password: hashedPassword };
-    //Create the cookie based on the user object and redirect to appropriate page
-    req.session.userID = newID;
-    res.redirect(`/urls`);
   }
 });
 
 app.post("/login", (req, res) => {
+  //Get the user account based off of the email
+  const user = getUserByEmail(req.body.email, users);
   if (req.session.userID) { // If the user is logged in redirect to urls page
     res.redirect("/urls");
   } else {
     if (!req.body.email) { //Check if the field was empty
       res.status(403).send('403 error: NO EMAIL INPUT\n');
-    } else {//Check if the email doesnt exists
-      if (!getUserByEmail(req.body.email, users)) {
-        res.status(403).send('403 error: EMAIL NOT FOUND\n');
-      }
-    }
-    if (!req.body.password) {//Check if the password field was empty
+    } else if (!getUserByEmail(req.body.email, users)) {//Check if the email doesnt exists
+      res.status(403).send('403 error: EMAIL NOT FOUND\n');
+    } else if (!req.body.password) {//Check if the password field was empty
       res.status(403).send('403 error: NO PASSWORD INPUT\n');
-    }
-    //Get the user account based off of the email
-    const user = getUserByEmail(req.body.email, users);
-    if (!bcrypt.compareSync(req.body.password, user.password)) {//Check if the password matches with the hash that we have stored for the user
+    } else if (!bcrypt.compareSync(req.body.password, user.password)) {//Check if the password matches with the hash that we have stored for the user
       res.status(403).send('403 error: INVALID CREDENTIALS\n');
+    } else { //Create the cookie based on the user object and redirect to appropriate page
+      req.session.userID = user.id;
+      res.redirect(`/urls`);
     }
-    //Create the cookie based on the user object and redirect to appropriate page
-    req.session.userID = user.id;
-    res.redirect(`/urls`);
   }
 });
 
@@ -181,10 +175,10 @@ app.get("/u/:id", (req, res) => {
 
 // Home page for tinyurl APP
 app.get("/", (req, res) => {
-  if (req.session.userID) { // If the user is not logged in redirect to login
+  const userID = req.session.userID;
+  if (!userID) { // If the user is not logged in redirect to login
     res.redirect("/login");
-  } else {
-    const userID = req.session.userID;
+  } else {  
     let userDatabase = urlsForUser(urlDatabase, userID);
     const templateVars = { urls: userDatabase, user: users[userID] };
     res.render("urls_index", templateVars);

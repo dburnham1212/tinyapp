@@ -6,7 +6,7 @@ TinyApp is a full stack web application built with Node and Express that allows 
 
 ### TinyApp - Home Page (To display created URLs)
 
-Displays all current URLs that the user has access to along with their shortened URL code.
+Displays all current URLs that the user has access to, along with their shortened URL code.
 
 !["Screenshot of home page (displaying created urls)!"](https://github.com/dburnham1212/tinyapp/blob/master/docs/TinyApp_URLS_Page.png)
 
