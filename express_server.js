@@ -1,5 +1,6 @@
-const cookieParser = require('cookie-parser'); //require the cookie parser
 const express = require("express");
+const cookieParser = require('cookie-parser'); //require the cookie parser
+const bcrypt = require("bcryptjs");
 const app = express();
 const PORT = 8080; // default port 8080
 
@@ -33,12 +34,12 @@ const users = {
   userRandomID: {
     id: "userRandomID",
     email: "user@example.com",
-    password: "purple-monkey-dinosaur",
+    password: bcrypt.hashSync("purple-monkey-dinosaur", 10) // Encrypt password for test case (not great practice but for the sake of testing)
   },
   user2RandomID: {
     id: "user2RandomID",
     email: "user2@example.com",
-    password: "dishwasher-funk",
+    password: bcrypt.hashSync("dishwasher-funk", 10)// Encrypt password for test case (not great practice but for the sake of testing)
   },
 };
 
@@ -101,13 +102,13 @@ app.post("/urls", (req, res) => {
 app.post("/urls/:id/delete", (req, res) => {
   const userID = req.cookies["user_id"];
   const urlID = req.params.id;
-  if (!userID) { // If the user is not logged in redirect to login page
+  if (!userID) { // If the user is not logged in send an error to let them know
     res.status(403).send("403 error: NO USER LOGGED IN\n");
-  } else if (!urlDatabase[urlID]) {
-    res.status(403).send(`403 error: URL AT ${urlID} DOES NOT EXIST\n`);
-  } else if (urlDatabase[urlID].userID !== userID) {
+  } else if (!urlDatabase[urlID]) { // If the user is logged in but the url does not exist let them know
+    res.status(404).send(`404 error: URL AT ${urlID} DOES NOT EXIST\n`);
+  } else if (urlDatabase[urlID].userID !== userID) { // If the user is logged in but the url does not belong to them let them know
     res.status(403).send(`403 error: YOU DO NOT HAVE ACCES TO ${urlID}\n`);
-  } else {
+  } else { // Otherwise delete the url and navigate back to the view all urls
     delete urlDatabase[urlID] ;
     res.redirect("/urls");
   }
@@ -117,22 +118,16 @@ app.post("/urls/:id/delete", (req, res) => {
 app.post("/urls/:id", (req, res) => {
   const userID = req.cookies["user_id"];
   const urlID = req.params.id;
-  if (!userID) { // If the user is not logged in redirect to login page
+  if (!userID) { // If the user is not logged in send an error to let them know
     res.status(403).send("403 error: NO USER LOGGED IN\n");
-  } else if (!urlDatabase[urlID]) {
-    res.status(403).send(`403 error: URL AT ${urlID} DOES NOT EXIST\n`);
-  } else if (urlDatabase[urlID].userID !== userID) {
+  } else if (!urlDatabase[urlID]) { // If the user is logged in but the url does not exist let them know
+    res.status(404).send(`404 error: URL AT ${urlID} DOES NOT EXIST\n`);
+  } else if (urlDatabase[urlID].userID !== userID) { // If the user is logged in but the url does not belong to them let them know
     res.status(403).send(`403 error: YOU DO NOT HAVE ACCES TO ${urlID}\n`);
-  } else {
+  } else { // Otherwise redirect to the specified url
     urlDatabase[urlID].longURL = req.body.longURL;
     res.redirect(`/urls/${urlID}`);
   }
-});
-
-// Use post method to allow user to logout and will clear cookies from data
-app.post("/logout", (req, res) => {
-  res.clearCookie('user_id');
-  res.redirect(`/login`);
 });
 
 app.post("/register", (req, res) => {
@@ -155,8 +150,9 @@ app.post("/register", (req, res) => {
     if(!req.body.password){//Check if the password field was empty
       res.status(400).send("400 error: NO PASSWORD INPUT");
     }
+    const hashedPassword = bcrypt.hashSync(req.body.password, 10);
     //Setup the new user object
-    users[newID] = { id: newID, email: req.body.email, password: req.body.password };
+    users[newID] = { id: newID, email: req.body.email, password: hashedPassword };
     //Create the cookie based on the user object and redirect to appropriate page
     res.cookie('user_id', newID);
     res.redirect(`/urls`);
@@ -179,7 +175,7 @@ app.post("/login", (req, res) => {
     }
     //Get the user account based off of the email
     const user = getUserByEmail(users, req.body.email);
-    if(user.password !== req.body.password) {//Check if the password matches what we have in our records
+    if(!bcrypt.compareSync(req.body.password, user.password)) {//Check if the password matches with the hash that we have stored for the user
       res.status(403).send("403 error: INVALID CREDENTIALS");
     }
     //Create the cookie based on the user object and redirect to appropriate page
@@ -188,6 +184,11 @@ app.post("/login", (req, res) => {
   } 
 });
 
+// Use post method to allow user to logout and will clear cookies from data
+app.post("/logout", (req, res) => {
+  res.clearCookie('user_id');
+  res.redirect(`/login`);
+});
 
 // GET METHODS
 // Travel to longURL based off of key value pair
@@ -258,7 +259,6 @@ app.get("/register", (req, res) =>{
   if (userID) { // If the user is logged in redirect to urls page
     res.redirect("/urls");
   } else {
-    
     const templateVars = { user: users[userID] };
     res.render("urls_registration", templateVars);
   }
