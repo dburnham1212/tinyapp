@@ -99,12 +99,12 @@ app.post("/urls", (req, res) => {
 app.post("/urls/:id/delete", (req, res) => {
   const userID = req.cookies["user_id"];
   const urlID = req.params.id;
-  if (!userID) { // If the user is not logged in redirect to login page
-    res.status(403).send("403 error: NO USER LOGGED IN");
-  } else if (!urlDatabase[urlID]) {
-    res.status(403).send(`403 error: URL AT ${urlID} DOES NOT EXIST`);
+  /*if (!userID) { // If the user is not logged in redirect to login page
+    res.status(403).send("403 error: NO USER LOGGED IN\n");
+  } else */if (!urlDatabase[urlID]) {
+    res.status(403).send(`403 error: URL AT ${urlID} DOES NOT EXIST\n`);
   } else if (urlDatabase[urlID].userID !== userID) {
-    res.status(403).send(`403 error: YOU DO NOT HAVE ACCES TO ${urlID}`);
+    res.status(403).send(`403 error: YOU DO NOT HAVE ACCES TO ${urlID}\n`);
   } else {
     delete urlDatabase[urlID] ;
     res.redirect("/urls");
@@ -116,11 +116,11 @@ app.post("/urls/:id", (req, res) => {
   const userID = req.cookies["user_id"];
   const urlID = req.params.id;
   if (!userID) { // If the user is not logged in redirect to login page
-    res.status(403).send("403 error: NO USER LOGGED IN");
+    res.status(403).send("403 error: NO USER LOGGED IN\n");
   } else if (!urlDatabase[urlID]) {
-    res.status(403).send(`403 error: URL AT ${urlID} DOES NOT EXIST`);
+    res.status(403).send(`403 error: URL AT ${urlID} DOES NOT EXIST\n`);
   } else if (urlDatabase[urlID].userID !== userID) {
-    res.status(403).send(`403 error: YOU DO NOT HAVE ACCES TO ${urlID}`);
+    res.status(403).send(`403 error: YOU DO NOT HAVE ACCES TO ${urlID}\n`);
   } else {
     urlDatabase[req.params.id].longURL = req.body.longURL;
     res.redirect(`/urls/${req.params.id}`);
@@ -138,9 +138,9 @@ app.post("/register", (req, res) => {
     res.redirect("/urls");
   } else {
     let newIdLength = 6;
-    let newId = generateRandomString(newIdLength);
-    while(users[newId]) {
-      newId = generateRandomString(newIdLength);
+    let newID = generateRandomString(newIdLength);
+    while(users[newID]) {
+      newID = generateRandomString(newIdLength);
     }
     if(!req.body.email){ //Check if the field was empty
       res.status(400).send("400 error: NO EMAIL INPUT");
@@ -153,9 +153,9 @@ app.post("/register", (req, res) => {
       res.status(400).send("400 error: NO PASSWORD INPUT");
     }
     //Setup the new user object
-    users[newId] = { id: newId, email: req.body.email, password: req.body.password };
+    users[newID] = { id: newID, email: req.body.email, password: req.body.password };
     //Create the cookie based on the user object and redirect to appropriate page
-    res.cookie('user_id', newId);
+    res.cookie('user_id', newID);
     res.redirect(`/urls`);
   }
 });
@@ -193,7 +193,7 @@ app.get("/u/:id", (req, res) => {
   if(!urlDatabase[req.params.id] ){
     res.status(404).send("404 error: ID NOT IN DATABASE");
   } else { //otherwise navigate to correct page
-    const longURL = `${urlDatabase[req.params.id]}`
+    const longURL = `${urlDatabase[req.params.id].longURL}`
     res.redirect(longURL);
   }
 });

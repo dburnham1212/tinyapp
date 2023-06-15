@@ -26,8 +26,8 @@
     <% if (user) { %>
     <div>
       <form class="form-inline " action="/logout" method="POST">
-        <label for="longURL" style="margin: 1em">Logged in as: <%= user.email %></label>
-        <button type="submit" class="btn btn-outline-dark">Logout</button>
+        <label for="logout" style="margin: 1em">Logged in as: <%= user.email %></label>
+        <button id = "logout" type="submit" class="btn btn-outline-dark">Logout</button>
       </form>
     </div>
         <% } %>
