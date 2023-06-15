@@ -3,6 +3,8 @@ const express = require("express");
 var cookieSession = require('cookie-session'); // require cookie session
 const bcrypt = require("bcryptjs");
 
+const {generateRandomString, getUserByEmail, urlsForUser} = require("./helpers");
+
 // CONSTANTS
 const app = express();
 const PORT = 8080; // default port 8080
@@ -46,41 +48,7 @@ const users = {
 };
 
 
-// HELPER FUNCTIONS
-// function to genereate a random string based off of the length parameter
-function generateRandomString(length) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890'//usable characters
-  let count = 0;
-  let randomString = '';
-  // loop throught the available characters and append each to randomString
-  while(count < length){
-    let charPosition = Math.round(Math.random() * (chars.length - 1));
-    randomString = `${randomString}${chars.charAt(charPosition)}`
-    count ++;
-  }
-  return randomString;
-}
 
-// Cycle through users and check if an email is equal to the params, if so return it
-function getUserByEmail(users, email) {
-  for(const userID in users){
-    if(users[userID].email === email){
-      return users[userID];
-    } 
-  }
-  return undefined;
-}
-
-// Cycle through users and put urls that correspond with a specific user id into an object
-function urlsForUser(urlDatabase, userID){
-  let userDatabase = {};
-  for(let urlID in urlDatabase) {
-    if(urlDatabase[urlID].userID === userID){
-      userDatabase[urlID] = urlDatabase[urlID];
-    }
-  }
-  return userDatabase;
-}
 // POST METHODS
 // Create a new short URL and redirect to that page after creation
 app.post("/urls", (req, res) => {
@@ -145,7 +113,7 @@ app.post("/register", (req, res) => {
     if(!req.body.email){ //Check if the field was empty
       res.status(400).send("400 error: NO EMAIL INPUT");
     } else {//Check if the email already exists
-      if (getUserByEmail(users, req.body.email)) {
+      if (getUserByEmail(req.body.email, users)) {
         res.status(400).send("400 error: EMAIL ALREADY FOUND IN DATABASE");
       }
     } 
@@ -168,7 +136,7 @@ app.post("/login", (req, res) => {
     if(!req.body.email){ //Check if the field was empty
       res.status(403).send("403 error: NO EMAIL INPUT");
     } else {//Check if the email doesnt exists
-      if (!getUserByEmail(users, req.body.email)) {
+      if (!getUserByEmail(req.body.email, users)) {
         res.status(403).send("403 error: EMAIL NOT FOUND");
       }
     } 
@@ -176,7 +144,7 @@ app.post("/login", (req, res) => {
       res.status(403).send("403 error: NO PASSWORD INPUT");
     }
     //Get the user account based off of the email
-    const user = getUserByEmail(users, req.body.email);
+    const user = getUserByEmail(req.body.email, users);
     if(!bcrypt.compareSync(req.body.password, user.password)) {//Check if the password matches with the hash that we have stored for the user
       res.status(403).send("403 error: INVALID CREDENTIALS");
     }
