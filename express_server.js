@@ -1,6 +1,6 @@
 //REQUIRES
 const express = require("express");
-const cookieSession = require('cookie-session'); // require cookie session
+const cookieSession = require('cookie-session'); 
 const bcrypt = require("bcryptjs");
 
 const {generateRandomString, getUserByEmail, urlsForUser} = require("./helpers");
@@ -9,6 +9,7 @@ const {generateRandomString, getUserByEmail, urlsForUser} = require("./helpers")
 // CONSTANTS
 const app = express();
 const PORT = 8080; // default port 8080
+
 app.set("view engine", "ejs");
 
 
@@ -166,7 +167,7 @@ app.get("/u/:id", (req, res) => {
   const urlID = req.params.id;
   if (!urlDatabase[req.params.id]) { // If we try to navigate to a page with an invalid id, send and error
     res.status(404).send('404 ERROR: ID NOT IN DATABASE\n');
-  } else { //otherwise navigate to correct page and update visited count
+  } else { // otherwise navigate to correct page and update visited count
     const longURL = `${urlDatabase[urlID].longURL}`;
     urlDatabase[urlID].visited++;
     res.redirect(longURL);
@@ -178,17 +179,17 @@ app.get("/", (req, res) => {
   const userID = req.session.userID;
   if (!userID) { // If the user is not logged in redirect to login
     res.redirect("/login");
-  } else {  
+  } else { // Otherwise redirect to urls
     res.redirect("/urls")
   }
 });
 
 // Second url for tinyurl APP homepage
-app.get("/urls", (req, res) => { // If the user is not logged in redirect to login
+app.get("/urls", (req, res) => {
   const userID = req.session.userID;
-  if (!userID) {
+  if (!userID) { // If the user is not logged in redirect to login
     res.redirect("/login");
-  } else {
+  } else { // Otherwise create database for specific user and navigate to a page that shows a list of URLS
     let userDatabase = urlsForUser(urlDatabase, userID);
     const templateVars = { urls: userDatabase, user: users[userID] };
     res.render("urls_index", templateVars);
@@ -200,7 +201,7 @@ app.get("/urls/new", (req, res) => {
   const userID = req.session.userID;
   if (!userID) { // If the user is not logged in redirect to login
     res.redirect("/login");
-  } else {
+  } else { // Otherwise go to page where user can create a new URL
     const templateVars = { user: users[userID] };
     res.render("urls_new", templateVars);
   }
@@ -214,7 +215,7 @@ app.get("/urls/:id", (req, res) => {
     res.status(403).send('403 ERROR: PERMISSION DENIED, YOU ARE NOT LOGGED IN\n');
   } else if (urlDatabase[req.params.id].userID !== userID) { // If the user is logged in but their userID does not correspond with URLS userID
     res.status(403).send('403 ERROR: PERMISSION DENIED, YOU DO NOT HAVE ACCESS TO THIS PAGE\n');
-  } else {
+  } else { // Otherwise go to urls_show page and show the current url
     const templateVars = { id: urlID, url: urlDatabase[urlID], user: users[userID] };
     res.render("urls_show", templateVars);
   }
@@ -225,7 +226,7 @@ app.get("/register", (req, res) =>{
   const userID = req.session.userID;
   if (userID) { // If the user is logged in redirect to urls page
     res.redirect("/urls");
-  } else {
+  } else { // Otherwise go to registration page
     const templateVars = { user: users[userID] };
     res.render("urls_registration", templateVars);
   }
@@ -236,7 +237,7 @@ app.get("/login", (req, res) =>{
   const userID = req.session.userID;
   if (userID) { // If the user is logged in redirect to urls page
     res.redirect("/urls");
-  } else {
+  } else { // Otherwise go to login page
     const templateVars = { user: users[userID] };
     res.render("urls_login", templateVars);
   }
