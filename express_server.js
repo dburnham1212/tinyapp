@@ -58,7 +58,7 @@ const users = {
 app.post("/urls", (req, res) => {
   const userID = req.session.userID;
   if (!userID) { // If the user is not logged in redirect to login page
-    res.status(403).send('403 error: NO USER LOGGED IN\n');
+    res.status(403).send('403 ERROR: NO USER LOGGED IN\n');
   } else {
     // Generate a random string 6 characters long, if the string exists generate another!
     let newIdLength = 6;
@@ -77,11 +77,11 @@ app.post("/urls/:id/delete", (req, res) => {
   const userID = req.session.userID;
   const urlID = req.params.id;
   if (!userID) { // If the user is not logged in send an error to let them know
-    res.status(403).send('403 error: NO USER LOGGED IN\n');
+    res.status(403).send('403 ERROR: PERMISSION DENIED, NO USER LOGGED IN\n');
   } else if (!urlDatabase[urlID]) { // If the user is logged in but the url does not exist let them know
-    res.status(404).send(`404 error: URL AT ${urlID} DOES NOT EXIST\n`);
+    res.status(404).send(`404 ERROR: URL AT ${urlID} DOES NOT EXIST\n`);
   } else if (urlDatabase[urlID].userID !== userID) { // If the user is logged in but the url does not belong to them let them know
-    res.status(403).send(`403 error: YOU DO NOT HAVE ACCES TO ${urlID}\n`);
+    res.status(403).send(`403 ERROR: PERMISSION DENIED, YOU DO NOT HAVE ACCES TO ${urlID}\n`);
   } else { // Otherwise delete the url and navigate back to the view all urls
     delete urlDatabase[urlID];
     res.redirect("/urls");
@@ -93,11 +93,11 @@ app.post("/urls/:id", (req, res) => {
   const userID = req.session.userID;
   const urlID = req.params.id;
   if (!userID) { // If the user is not logged in send an error to let them know
-    res.status(403).send('403 error: NO USER LOGGED IN\n');
+    res.status(403).send('403 ERROR: PERMISSION DENIED, NO USER LOGGED IN\n');
   } else if (!urlDatabase[urlID]) { // If the user is logged in but the url does not exist let them know
-    res.status(404).send(`404 error: URL AT ${urlID} DOES NOT EXIST\n`);
+    res.status(404).send(`404 ERROR: URL AT ${urlID} DOES NOT EXIST\n`);
   } else if (urlDatabase[urlID].userID !== userID) { // If the user is logged in but the url does not belong to them let them know
-    res.status(403).send(`403 error: YOU DO NOT HAVE ACCES TO ${urlID}\n`);
+    res.status(403).send(`403 ERROR: PERMISSION DENIED, YOU DO NOT HAVE ACCES TO ${urlID}\n`);
   } else { // Otherwise redirect to the specified url
     urlDatabase[urlID].longURL = req.body.longURL;
     res.redirect(`/urls/${urlID}`);
@@ -115,11 +115,11 @@ app.post("/register", (req, res) => {
       newID = generateRandomString(newIdLength);
     }
     if (!req.body.email) { //Check if the field was empty
-      res.status(400).send('400 error: NO EMAIL INPUT\n');
+      res.status(400).send('400 ERROR: NO EMAIL INPUT\n');
     } else if (getUserByEmail(req.body.email, users)) {//Check if the email already exists
-      res.status(400).send('400 error: EMAIL ALREADY FOUND IN DATABASE\n');
+      res.status(400).send('400 ERROR: EMAIL ALREADY FOUND IN DATABASE\n');
     } else if (!req.body.password) {//Check if the password field was empty
-      res.status(400).send('400 error: NO PASSWORD INPUT\n');
+      res.status(400).send('400 ERROR: NO PASSWORD INPUT\n');
     } else {
       //Create new hashed password
       const hashedPassword = bcrypt.hashSync(req.body.password, 10);
@@ -139,13 +139,13 @@ app.post("/login", (req, res) => {
     res.redirect("/urls");
   } else {
     if (!req.body.email) { //Check if the field was empty
-      res.status(403).send('403 error: NO EMAIL INPUT\n');
+      res.status(403).send('403 ERROR: PERMISSION DENIED, NO EMAIL INPUT\n');
     } else if (!getUserByEmail(req.body.email, users)) {//Check if the email doesnt exists
-      res.status(403).send('403 error: EMAIL NOT FOUND\n');
+      res.status(403).send('403 ERROR: PERMISSION DENIED, EMAIL NOT FOUND\n');
     } else if (!req.body.password) {//Check if the password field was empty
-      res.status(403).send('403 error: NO PASSWORD INPUT\n');
+      res.status(403).send('403 ERROR: PERMISSION DENIED, NO PASSWORD INPUT\n');
     } else if (!bcrypt.compareSync(req.body.password, user.password)) {//Check if the password matches with the hash that we have stored for the user
-      res.status(403).send('403 error: INVALID CREDENTIALS\n');
+      res.status(403).send('403 ERROR: PERMISSION DENIED, INVALID CREDENTIALS\n');
     } else { //Create the cookie based on the user object and redirect to appropriate page
       req.session.userID = user.id;
       res.redirect(`/urls`);
@@ -165,7 +165,7 @@ app.post("/logout", (req, res) => {
 app.get("/u/:id", (req, res) => {
   const urlID = req.params.id;
   if (!urlDatabase[req.params.id]) { // If we try to navigate to a page with an invalid id, send and error
-    res.status(404).send('404 error: ID NOT IN DATABASE\n');
+    res.status(404).send('404 ERROR: ID NOT IN DATABASE\n');
   } else { //otherwise navigate to correct page and update visited count
     const longURL = `${urlDatabase[urlID].longURL}`;
     urlDatabase[urlID].visited++;
@@ -179,9 +179,7 @@ app.get("/", (req, res) => {
   if (!userID) { // If the user is not logged in redirect to login
     res.redirect("/login");
   } else {  
-    let userDatabase = urlsForUser(urlDatabase, userID);
-    const templateVars = { urls: userDatabase, user: users[userID] };
-    res.render("urls_index", templateVars);
+    res.redirect("/urls")
   }
 });
 
@@ -213,9 +211,9 @@ app.get("/urls/:id", (req, res) => {
   const userID = req.session.userID;
   const urlID = req.params.id;
   if (!userID) { // If the user is not logged in send appropriate error message
-    res.status(403).send('403 error: PERMISSION DENIED, YOU ARE NOT LOGGED IN');
+    res.status(403).send('403 ERROR: PERMISSION DENIED, YOU ARE NOT LOGGED IN\n');
   } else if (urlDatabase[req.params.id].userID !== userID) { // If the user is logged in but their userID does not correspond with URLS userID
-    res.status(403).send('403 error: PERMISSION DENIED, YOU DO NOT HAVE ACCESS TO THIS PAGE');
+    res.status(403).send('403 ERROR: PERMISSION DENIED, YOU DO NOT HAVE ACCESS TO THIS PAGE\n');
   } else {
     const templateVars = { id: urlID, url: urlDatabase[urlID], user: users[userID] };
     res.render("urls_show", templateVars);
