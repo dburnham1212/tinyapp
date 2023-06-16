@@ -1,5 +1,6 @@
 //REQUIRES
 const express = require("express");
+const methodOverride = require('method-override');
 const cookieSession = require('cookie-session'); 
 const bcrypt = require("bcryptjs");
 
@@ -15,6 +16,7 @@ app.set("view engine", "ejs");
 
 // MIDDLEWARE
 app.use(express.urlencoded({ extended: true }));
+app.use(methodOverride('_method'));
 app.use(cookieSession({
   name: 'session',
   keys: ['Key1', 'Key2', 'Key3'],
@@ -73,38 +75,6 @@ app.post("/urls", (req, res) => {
   }
 });
 
-// Use post method to delete the item from the database, and redirect to the homepage
-app.post("/urls/:id/delete", (req, res) => {
-  const userID = req.session.userID;
-  const urlID = req.params.id;
-  if (!userID) { // If the user is not logged in send an error to let them know
-    res.status(403).send('403 ERROR: PERMISSION DENIED, NO USER LOGGED IN\n');
-  } else if (!urlDatabase[urlID]) { // If the user is logged in but the url does not exist let them know
-    res.status(404).send(`404 ERROR: URL AT ${urlID} DOES NOT EXIST\n`);
-  } else if (urlDatabase[urlID].userID !== userID) { // If the user is logged in but the url does not belong to them let them know
-    res.status(403).send(`403 ERROR: PERMISSION DENIED, YOU DO NOT HAVE ACCES TO ${urlID}\n`);
-  } else { // Otherwise delete the url and navigate back to the view all urls
-    delete urlDatabase[urlID];
-    res.redirect("/urls");
-  }
-});
-
-// Use post method update an item from the database, and redirect to the appropriate page
-app.post("/urls/:id", (req, res) => {
-  const userID = req.session.userID;
-  const urlID = req.params.id;
-  if (!userID) { // If the user is not logged in send an error to let them know
-    res.status(403).send('403 ERROR: PERMISSION DENIED, NO USER LOGGED IN\n');
-  } else if (!urlDatabase[urlID]) { // If the user is logged in but the url does not exist let them know
-    res.status(404).send(`404 ERROR: URL AT ${urlID} DOES NOT EXIST\n`);
-  } else if (urlDatabase[urlID].userID !== userID) { // If the user is logged in but the url does not belong to them let them know
-    res.status(403).send(`403 ERROR: PERMISSION DENIED, YOU DO NOT HAVE ACCES TO ${urlID}\n`);
-  } else { // Otherwise redirect to the specified url
-    urlDatabase[urlID].longURL = req.body.longURL;
-    res.redirect(`/urls/${urlID}`);
-  }
-});
-
 app.post("/register", (req, res) => {
   if (req.session.userID) { // If the user is logged in redirect to urls page
     res.redirect("/urls");
@@ -160,6 +130,39 @@ app.post("/logout", (req, res) => {
   res.redirect(`/login`);
 });
 
+// PUT METHODS
+// Use post method update an item from the database, and redirect to the appropriate page
+app.put("/urls/:id", (req, res) => {
+  const userID = req.session.userID;
+  const urlID = req.params.id;
+  if (!userID) { // If the user is not logged in send an error to let them know
+    res.status(403).send('403 ERROR: PERMISSION DENIED, NO USER LOGGED IN\n');
+  } else if (!urlDatabase[urlID]) { // If the user is logged in but the url does not exist let them know
+    res.status(404).send(`404 ERROR: URL AT ${urlID} DOES NOT EXIST\n`);
+  } else if (urlDatabase[urlID].userID !== userID) { // If the user is logged in but the url does not belong to them let them know
+    res.status(403).send(`403 ERROR: PERMISSION DENIED, YOU DO NOT HAVE ACCES TO ${urlID}\n`);
+  } else { // Otherwise redirect to the specified url
+    urlDatabase[urlID].longURL = req.body.longURL;
+    res.redirect(`/urls/${urlID}`);
+  }
+});
+
+// DELETE METHODS
+// Use post method to delete the item from the database, and redirect to the homepage
+app.delete("/urls/:id", (req, res) => {
+  const userID = req.session.userID;
+  const urlID = req.params.id;
+  if (!userID) { // If the user is not logged in send an error to let them know
+    res.status(403).send('403 ERROR: PERMISSION DENIED, NO USER LOGGED IN\n');
+  } else if (!urlDatabase[urlID]) { // If the user is logged in but the url does not exist let them know
+    res.status(404).send(`404 ERROR: URL AT ${urlID} DOES NOT EXIST\n`);
+  } else if (urlDatabase[urlID].userID !== userID) { // If the user is logged in but the url does not belong to them let them know
+    res.status(403).send(`403 ERROR: PERMISSION DENIED, YOU DO NOT HAVE ACCES TO ${urlID}\n`);
+  } else { // Otherwise delete the url and navigate back to the view all urls
+    delete urlDatabase[urlID];
+    res.redirect("/urls");
+  }
+});
 
 // GET METHODS
 // Travel to longURL based off of key value pair

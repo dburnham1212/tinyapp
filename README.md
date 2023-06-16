@@ -37,6 +37,7 @@ Users can create new credentials which will be saved on the server. They can the
 - EJS
 - bcryptjs
 - cookie-session
+- method-override
 
 ## Getting Started
 
